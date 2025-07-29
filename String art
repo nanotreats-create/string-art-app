@@ -1,0 +1,48 @@
+
+import streamlit as st
+import cv2
+import numpy as np
+from PIL import Image
+
+def generate_pegs(center, radius, num_pegs):
+    pegs = []
+    for i in range(num_pegs):
+        theta = 2 * np.pi * i / num_pegs
+        x = int(center[0] + radius * np.cos(theta))
+        y = int(center[1] + radius * np.sin(theta))
+        pegs.append((x, y))
+    return pegs
+
+def draw_string_art(pegs, connections):
+    canvas = np.ones((400, 400, 3), dtype=np.uint8) * 255
+    for a, b in connections:
+        cv2.line(canvas, pegs[a], pegs[b], (0, 0, 0), 1)
+    for i, (x, y) in enumerate(pegs):
+        cv2.circle(canvas, (x, y), 2, (0, 0, 255), -1)
+        cv2.putText(canvas, str(i+1), (x+4, y+4), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
+    return canvas
+
+st.title("ðŸ§µ String Art Pattern Generator (Prototype)")
+st.write("Upload an image to generate a basic string art pattern with numbered pegs.")
+
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
+    image = image.resize((400, 400))
+    image_np = np.array(image)
+
+    gray = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray, 100, 200)
+
+    pegs = generate_pegs(center=(200, 200), radius=150, num_pegs=60)
+    sample_connections = [(i, (i+15)%60) for i in range(60)]
+
+    result = draw_string_art(pegs, sample_connections)
+    st.image(result, caption="Generated String Art Preview", use_column_width=True)
+
+    st.subheader("ðŸ”¢ Sample Step-by-Step Instructions")
+    for idx, (a, b) in enumerate(sample_connections[:10]):
+        st.write(f"Step {idx+1}: Connect peg {a+1} â†’ {b+1}")
+else:
+    st.info("Please upload an image to start.")
